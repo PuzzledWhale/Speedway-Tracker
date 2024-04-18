@@ -1,6 +1,9 @@
 from ultralytics import YOLO
 import cv2
 import math 
+import torch
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # webcam
 cap = cv2.VideoCapture(0)
@@ -9,10 +12,11 @@ cap.set(4, 480)
 
 # model (make sure you have the .pt file in the same directory as this python file)
 model = YOLO("best.pt")
-
+model.to(device)
 
 while True:
     success, img = cap.read()
+
     results = model(img, stream=True)
 
     # coordinates
