@@ -1,7 +1,7 @@
 import numpy as np
 
 class KalmanFilter():
-    def __init__(self, dt, q = 0.1, r =1.0, state= np.zeros((6,1))):
+    def __init__(self, dt, q = 0.1, r = 1.0, state = np.zeros((6,1))):
         # Initialize state transition matrix
         self.F = np.array([[1, 0, dt, 0, 0.5*dt**2, 0],
                            [0, 1, 0, dt, 0, 0.5*dt**2],
