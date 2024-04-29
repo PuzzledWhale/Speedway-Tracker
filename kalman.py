@@ -1,12 +1,13 @@
 import numpy as np
+from box import Box
 
 class KalmanFilter():
-    def __init__(self, dt, q = 0.1, r = 1.0, state = np.zeros((6,1))):
+    def __init__(self, start_time, q = 0.1, r = 1.0, state = np.zeros((6,1))):
         # Initialize state transition matrix
-        self.F = np.array([[1, 0, dt, 0, 0.5*dt**2, 0],
-                           [0, 1, 0, dt, 0, 0.5*dt**2],
-                           [0, 0, 1, 0, dt, 0],
-                           [0, 0, 0, 1, 0, dt],
+        self.F = np.array([[1, 0, 0, 0, 0, 0],
+                           [0, 1, 0, 0, 0, 0],
+                           [0, 0, 1, 0, 0, 0],
+                           [0, 0, 0, 1, 0, 0],
                            [0, 0, 0, 0, 1, 0],
                            [0, 0, 0, 0, 0, 1]])
         
@@ -23,13 +24,15 @@ class KalmanFilter():
         # Initialize state and covariance matrix
         self.x = state  # [x, y, vx, vy, ax, ay]
         self.P = np.eye(6) * 1000.0
+        self.start_time = start_time
 
     def predict(self):
         # Predict new state and covariance
         self.x = np.dot(self.F, self.x)
         self.P = np.dot(np.dot(self.F, self.P), self.F.T) + self.Q
 
-    def update(self, measurement, dt):
+    def update(self, measurement, new_time):
+        dt = new_time - self.start_time
         self.F = np.array([[1, 0, dt, 0, 0.5*dt**2, 0],
                            [0, 1, 0, dt, 0, 0.5*dt**2],
                            [0, 0, 1, 0, dt, 0],
@@ -47,3 +50,6 @@ class KalmanFilter():
         
         # Update covariance matrix
         self.P = np.dot((np.eye(6) - np.dot(K, self.H)), self.P)
+
+    def get_box():
+
