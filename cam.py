@@ -4,7 +4,6 @@ import math
 import torch
 import time
 from person import Person
-from kalman import KalmanFilter
 import hungarian
 from box import Box
 
@@ -56,7 +55,7 @@ while True:
             cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
 
             # add bounding box to list of new bounding boxes detected this frame
-            bounding_boxes.append(Box(x1, x2, y1, y2, frame))
+            bounding_boxes.append(Box(frame,x1=x1, y1=y1, x2=x2, y2=y2))
 
     
     
@@ -66,9 +65,17 @@ while True:
             person = Person(box, curr_time)
             # perform color association here! 
     else:
-        # run through hungarian algorithm comparing predicted bounding positions
-    for person in people:
-        # update kalman filter and make new predictions
+        #  predict bounding box positions at new time and assign through hungarian algorithm
+        for person in people:
+            person.predict(curr_time)
+        
+        # generate cost matrix and run hungarian
+        cost_matrix = []
+        assignments = hungarian(cost_matrix)
+
+        # 
+        for person in people:
+            person.update()
 
     cv2.imshow('Webcam', img)
     if cv2.waitKey(1) == ord('q'):
