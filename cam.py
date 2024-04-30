@@ -6,6 +6,7 @@ import time
 from person import Person
 import hungarian
 from box import Box
+from color import *
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -76,6 +77,16 @@ while True:
             for person in people:
                 row.append(1.0 / box.intersection_over_union(person.prediction_box)) # alternatively could use euclidean distance
             cost_matrix.append(row)
+
+        previous_boxes=[]
+        for person in people :
+            previous_boxes.append(person.bounding_box)
+        
+        # Cost_matrix for color match
+        if len(previous_img) != 0:
+            # not first detection 
+            cost_matrix=cost_matrix+ColorDistance(previous_img,previous_boxes,img,bounding_boxes)
+        previous_img=img # updating previous image
 
         assignments = hungarian(cost_matrix)
 
