@@ -71,6 +71,12 @@ while True:
         
         # generate cost matrix and run hungarian
         cost_matrix = []
+        for box in bounding_boxes:
+            row = []
+            for person in people:
+                row.append(1.0 / box.intersection_over_union(person.prediction_box)) # alternatively could use euclidean distance
+            cost_matrix.append(row)
+
         assignments = hungarian(cost_matrix)
 
         # 
