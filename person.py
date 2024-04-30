@@ -2,11 +2,12 @@ import numpy as np
 from box import Box
 
 class Person:
-    def __init__(self, bounding_box, start_time, q = 0.1, r = 1.0):
+    def __init__(self, bounding_box, start_time, id, q = 0.1, r = 1.0):
         self.bounding_box = bounding_box # current bounding box this person is associated to
         self.prediction_box = bounding_box
+        self.id = id
         self.box_history = [bounding_box]
-        self.frame_history = []
+        self.frame_history = [bounding_box.frame]
         self.color = ''
 
         # Initialize state transition matrix
@@ -31,6 +32,7 @@ class Person:
         self.state = np.array([bounding_box.position[0], bounding_box.position[1], np.sign(320 - bounding_box.position[0]) * 10, 0, 0, 0])  # [x, y, vx, vy, ax, ay]
         self.covariance = np.eye(6) * 1000.0
         self.last_time = start_time
+        self.delete = False
         
     def predict(self, new_time):
         dt = new_time - self.last_time
@@ -51,7 +53,7 @@ class Person:
         if new_box:
             self.bounding_box = new_box
             self.box_history.append(new_box)
-            self.frame_history.append()
+            self.frame_history.append(new_box.frame)
         else:
             self.bounding_box = self.prediction_box
 

@@ -3,8 +3,9 @@ import math
 
 class Box():
     # if x2 and y2 are provided then find center between point1 and point2. Otherwise assume point1 is the center
-    def __init__(self, frame, x1, y1, x2 = -1, y2 = -1, size=np.array([0,0])):
+    def __init__(self, frame, confidence, x1, y1, x2 = -1, y2 = -1, size=np.array([0,0])):
         self.frame = frame
+        self.confidence = confidence
         if x2 == -1 and y2 == -1:
             self.position = np.array([x1, y1])
             self.size = size
