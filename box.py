@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 class Box():
     # if x2 and y2 are provided then find center between point1 and point2. Otherwise assume point1 is the center
@@ -32,6 +33,10 @@ class Box():
 
         # intersection over union is (area of overlap / area of union)
         return intersection_area / (area1 + area2 - intersection_area) 
+    
+    # find euclidean distance between this bounding box (box1) and another (box2)
+    def euclidean_distance(self, box2):
+        return math.sqrt((self.position[0] - box2.position[0])**2 + (self.position[1] - box2.position[1])**2)
     
     # returns the total area of the bouinding box (W * H)
     def get_area(self):
