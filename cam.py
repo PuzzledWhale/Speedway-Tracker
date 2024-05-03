@@ -10,21 +10,16 @@ from color import *
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def draw_box(img, box, person):
+def draw_box(img, box, person, col=(255,0,0), label=None):
     corners = box.get_corners()
     x1, y1, x2, y2 = int(corners[0]), int(corners[1]), int(corners[2]), int(corners[3])
 
     # put box in cam
-    cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
-
+    cv2.rectangle(img, (x1, y1), (x2, y2), col, 2)
+    if not label:
+        label = 'confidence: ' + str(box.confidence) + ' ID: ' + str(person.id)
     # object details
-    txt = 'confidence: ' + str(box.confidence) + ' ID: ' + str(person.id)
-    org = [x1, y1]
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    fontScale = 1
-    color = (255, 0, 0)
-    thickness = 2
-    cv2.putText(img, txt, org, font, fontScale, color, thickness)
+    cv2.putText(img, label, [x1, y1], cv2.FONT_HERSHEY_SIMPLEX, 0.4, col, 1)
 
 # webcam
 # cap = cv2.VideoCapture(0)
@@ -49,6 +44,10 @@ print('starting up camera. Time is:', start_time)
 
 while True:
     frame += 1
+    # print('\n\n\n\nFRAME', frame)
+    # print('PEOPLE')
+    # for person in people:
+    #     print("PERSON", person.id, "STATES:", person.state, person.bounding_box.position, person.prediction_box.position)
     curr_time = time.time()
     success, img = cap.read()
     results = model(img, stream=True)
@@ -64,15 +63,16 @@ while True:
             # if confidence is not high enough, continue
             if confidence < 0.4:
                 continue
-
-            print("Confidence: ",confidence)
             
             # get bounding box information
             x1, y1, x2, y2 = box.xyxy[0]
             x1, y1, x2, y2 = float(x1), float(y1), float(x2), float(y2) # convert to int values
             bounding_boxes.append(Box(frame, confidence, x1=x1, y1=y1, x2=x2, y2=y2))
     
-    
+    # print('BOXES')
+    # for box in bounding_boxes:
+    #     print('box', box.confidence, box.position)
+    # print('')
     if len(people) == 0:
         # add all the bounding boxes as new people
         for box in bounding_boxes:
@@ -84,12 +84,15 @@ while True:
         for person in people:
             person.predict(curr_time)
         
+        # for person in people:
+        #     draw_box(img, person.prediction_box, person, (0, 0, 255), 'prediction for ' + str(person.id))
+
         # generate cost matrix and run hungarian
         cost_matrix = []
-        for person in people:
+        for box in bounding_boxes:
             row = []
-            for box in bounding_boxes:
-                # row.append(1.0 / person.prediction_box.intersection_over_union(box))
+            for person in people:
+                # row.append(-1 * person.prediction_box.intersect_over_union(box))
                 row.append(person.prediction_box.euclidean_distance(box))
             cost_matrix.append(row)
 
@@ -104,10 +107,12 @@ while True:
         # previous_img=img # updating previous image
 
         assignments = hungarian(cost_matrix)
-
+        # print('COST MATRIX:\n', cost_matrix)
+        # print('ASSIGNMENTS:', assignments)
         for i in range(len(assignments)):
             # person not seen, use prediction for update
             if i >= len(bounding_boxes):
+                # print("PERSON", people[assignments[i]].id, "WITH STATES:", person.state, person.bounding_box.position, person.prediction_box.position, 'NOT SEEN... USING PREDICTION')
                 people[assignments[i]].update(None)
                 if frame - people[i].frame_history[-1] > 10:
                     people[assignments[i]].delete = True # if person has not been seen for 10 frames, delete the person
@@ -119,15 +124,18 @@ while True:
 
             # make update with new frame
             else:
+                # print("PERSON", people[assignments[i]].id, "WITH STATES:", people[assignments[i]].state, people[assignments[i]].bounding_box.position, people[assignments[i]].prediction_box.position, 'ASSIGNED TO BOX AT', bounding_boxes[i].position)
                 people[assignments[i]].update(bounding_boxes[i])
                 draw_box(img, bounding_boxes[i], people[assignments[i]])
-            
+        
+        
         
         people = [person for person in people if not person.delete] # delete all people who have not been seen for 10 frames
     
     cv2.imshow('Webcam', img)
     if cv2.waitKey(1) == ord('q'):
         break
+    # time.sleep(2) # for debugging purposes
 
 cap.release()
 cv2.destroyAllWindows()
