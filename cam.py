@@ -84,51 +84,55 @@ while True:
         for person in people:
             person.predict(curr_time)
         
-        for person in people:
-            draw_box(img, person.prediction_box, person, (0, 0, 255), 'prediction for ' + str(person.id))
+        # for person in people:
+        #     draw_box(img, person.prediction_box, person, (0, 0, 255), 'prediction for ' + str(person.id))
 
         # generate cost matrix and run hungarian
-        cost_matrix = []
-        for box in bounding_boxes:
-            row = []
+        if len(bounding_boxes) > 0:
+            cost_matrix = []
+            for box in bounding_boxes:
+                row = []
+                for person in people:
+                    # row.append(-1 * person.prediction_box.intersect_over_union(box))
+                    row.append(person.prediction_box.euclidean_distance(box))
+                cost_matrix.append(row)
+
+            previous_boxes=[]
+            for person in people :
+                previous_boxes.append(person.bounding_box)
+            
+            # # Cost_matrix for color match
+            # if len(previous_img) != 0:
+            #     # not first detection 
+            #     cost_matrix=cost_matrix+ColorDistance(previous_img,previous_boxes,img,bounding_boxes)
+            # previous_img=img # updating previous image
+
+            assignments = hungarian(cost_matrix)
+            print('COST MATRIX:\n', cost_matrix)
+            print('ASSIGNMENTS:', assignments)
+            for i in range(len(assignments)):
+                # person not seen, use prediction for update
+                if i >= len(bounding_boxes):
+                    print("PERSON", people[assignments[i]].id, "WITH STATES:", person.state, person.bounding_box.position, person.prediction_box.position, 'NOT SEEN... USING PREDICTION')
+                    # people[assignments[i]].update(None)
+                    if frame - people[i].frame_history[-1] > 10:
+                        people[assignments[i]].delete = True # if person has not been seen for 10 frames, delete the person
+                # new frame
+                elif assignments[i] >= len(people):   
+                    people.append(Person(bounding_boxes[i], curr_time, people_id)) # assign bounding box to new person
+                    people_id += 1 
+                    draw_box(img, bounding_boxes[i], people[-1])
+
+                # make update with new frame
+                else:
+                    print("PERSON", people[assignments[i]].id, "WITH STATES:", people[assignments[i]].state, people[assignments[i]].bounding_box.position, people[assignments[i]].prediction_box.position, 'ASSIGNED TO BOX AT', bounding_boxes[i].position)
+                    people[assignments[i]].update(bounding_boxes[i])
+                    draw_box(img, bounding_boxes[i], people[assignments[i]])
+        # if not bounding boxes were detected, automatically update all people and check if they should be deleted
+        else:
             for person in people:
-                # row.append(-1 * person.prediction_box.intersect_over_union(box))
-                row.append(person.prediction_box.euclidean_distance(box))
-            cost_matrix.append(row)
-
-        previous_boxes=[]
-        for person in people :
-            previous_boxes.append(person.bounding_box)
-        
-        # # Cost_matrix for color match
-        # if len(previous_img) != 0:
-        #     # not first detection 
-        #     cost_matrix=cost_matrix+ColorDistance(previous_img,previous_boxes,img,bounding_boxes)
-        # previous_img=img # updating previous image
-
-        assignments = hungarian(cost_matrix)
-        print('COST MATRIX:\n', cost_matrix)
-        print('ASSIGNMENTS:', assignments)
-        for i in range(len(assignments)):
-            # person not seen, use prediction for update
-            if i >= len(bounding_boxes):
-                print("PERSON", people[assignments[i]].id, "WITH STATES:", person.state, person.bounding_box.position, person.prediction_box.position, 'NOT SEEN... USING PREDICTION')
-                people[assignments[i]].update(None)
-                if frame - people[i].frame_history[-1] > 10:
-                    people[assignments[i]].delete = True # if person has not been seen for 10 frames, delete the person
-            # new frame
-            elif assignments[i] >= len(people):   
-                people.append(Person(bounding_boxes[i], curr_time, people_id)) # assign bounding box to new person
-                people_id += 1 
-                draw_box(img, bounding_boxes[i], people[-1])
-
-            # make update with new frame
-            else:
-                print("PERSON", people[assignments[i]].id, "WITH STATES:", people[assignments[i]].state, people[assignments[i]].bounding_box.position, people[assignments[i]].prediction_box.position, 'ASSIGNED TO BOX AT', bounding_boxes[i].position)
-                people[assignments[i]].update(bounding_boxes[i])
-                draw_box(img, bounding_boxes[i], people[assignments[i]])
-        
-        
+                if frame - person.frame_history[-1] > 10:
+                        person.delete = True # if person has not been seen for 10 frames, delete the person
         
         people = [person for person in people if not person.delete] # delete all people who have not been seen for 10 frames
     
