@@ -39,6 +39,8 @@ model.to(device)
 people = []
 previous_img = []
 
+grace_period = 50
+
 start_time = time.time # float in seconds
 print('starting up camera. Time is:', start_time) 
 
@@ -115,7 +117,7 @@ while True:
                 if i >= len(bounding_boxes):
                     print("PERSON", people[assignments[i]].id, "WITH STATES:", person.state, person.bounding_box.position, person.prediction_box.position, 'NOT SEEN... USING PREDICTION')
                     # people[assignments[i]].update(None)
-                    if frame - people[i].frame_history[-1] > 10:
+                    if frame - people[i].frame_history[-1] > grace_period:
                         people[assignments[i]].delete = True # if person has not been seen for 10 frames, delete the person
                 # new frame
                 elif assignments[i] >= len(people):   
@@ -131,7 +133,7 @@ while True:
         # if not bounding boxes were detected, automatically update all people and check if they should be deleted
         else:
             for person in people:
-                if frame - person.frame_history[-1] > 10:
+                if frame - person.frame_history[-1] > grace_period:
                         person.delete = True # if person has not been seen for 10 frames, delete the person
         
         people = [person for person in people if not person.delete] # delete all people who have not been seen for 10 frames
