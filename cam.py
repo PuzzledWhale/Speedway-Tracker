@@ -4,7 +4,7 @@ import math
 import torch
 import time
 from person import Person
-import hungarian
+from hungarian import hungarian
 from box import Box
 from color import *
 
@@ -12,13 +12,13 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def draw_box(img, box, person):
     corners = box.get_corners()
-    x1, y1, x2, y2 = corners[0], corners[1], corners[2], corners[3]
+    x1, y1, x2, y2 = int(corners[0]), int(corners[1]), int(corners[2]), int(corners[3])
 
     # put box in cam
     cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
 
     # object details
-    txt = 'confidence: ' + str(box.confidence) + ' ID: ' + person.id, 
+    txt = 'confidence: ' + str(box.confidence) + ' ID: ' + str(person.id)
     org = [x1, y1]
     font = cv2.FONT_HERSHEY_SIMPLEX
     fontScale = 1
@@ -27,7 +27,8 @@ def draw_box(img, box, person):
     cv2.putText(img, txt, org, font, fontScale, color, thickness)
 
 # webcam
-cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture('videos/20240430_182615.mp4')
 cap.set(3, 640)
 cap.set(4, 480)
 
@@ -41,6 +42,8 @@ model = YOLO("best.pt")
 model.to(device)
 
 people = []
+previous_img = []
+
 start_time = time.time # float in seconds
 print('starting up camera. Time is:', start_time) 
 
@@ -66,7 +69,7 @@ while True:
             
             # get bounding box information
             x1, y1, x2, y2 = box.xyxy[0]
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2) # convert to int values
+            x1, y1, x2, y2 = float(x1), float(y1), float(x2), float(y2) # convert to int values
             bounding_boxes.append(Box(frame, confidence, x1=x1, y1=y1, x2=x2, y2=y2))
     
     
@@ -88,20 +91,21 @@ while True:
             for box in bounding_boxes:
                 # row.append(1.0 / person.prediction_box.intersection_over_union(box))
                 row.append(person.prediction_box.euclidean_distance(box))
+            cost_matrix.append(row)
 
         previous_boxes=[]
         for person in people :
             previous_boxes.append(person.bounding_box)
         
-        # Cost_matrix for color match
-        if len(previous_img) != 0:
-            # not first detection 
-            cost_matrix=cost_matrix+ColorDistance(previous_img,previous_boxes,img,bounding_boxes)
-        previous_img=img # updating previous image
+        # # Cost_matrix for color match
+        # if len(previous_img) != 0:
+        #     # not first detection 
+        #     cost_matrix=cost_matrix+ColorDistance(previous_img,previous_boxes,img,bounding_boxes)
+        # previous_img=img # updating previous image
 
         assignments = hungarian(cost_matrix)
 
-        for i in range(assignments):
+        for i in range(len(assignments)):
             # person not seen, use prediction for update
             if i >= len(bounding_boxes):
                 people[assignments[i]].update(None)

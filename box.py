@@ -9,9 +9,11 @@ class Box():
         if x2 == -1 and y2 == -1:
             self.position = np.array([x1, y1])
             self.size = size
+            print('initializing position:', self.position)
         else:
             self.position = np.array([((x1 + x2) / 2), ((y1 + y2) / 2)]) # store bounding box center position
             self.size = np.array([x2-x1, y2-y1])
+            print('initializing position:', self.position)
 
 
     # get the corners of the bounding box as a numpy array of (x1, y1, x2, y2) where (x1, y1) is the top left corner and (x2, y2) is the bottom right corner
@@ -37,6 +39,7 @@ class Box():
     
     # find euclidean distance between this bounding box (box1) and another (box2)
     def euclidean_distance(self, box2):
+        print('AAAAA', self.position[0], box2.position[0], self.position[1], box2.position[1])
         return math.sqrt((self.position[0] - box2.position[0])**2 + (self.position[1] - box2.position[1])**2)
     
     # returns the total area of the bouinding box (W * H)
