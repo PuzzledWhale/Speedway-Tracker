@@ -13,17 +13,17 @@ def hungarian(cost_matrix):
         cost_matrix = np.pad(cost_matrix, [(0, cols-rows), (0, 0)], mode='constant', constant_values=np.max(cost_matrix))
         rows = cols
 
-    print("Preprocessing: Pad the cost matrix\n", cost_matrix)
+    # print("Preprocessing: Pad the cost matrix\n", cost_matrix)
 
     # Step 1: Subtract the row minimum from each row
     cost_matrix -= np.min(cost_matrix, axis=1)[:, np.newaxis]
 
-    print("Step 1: Subtract row minimum\n", cost_matrix)
+    # print("Step 1: Subtract row minimum\n", cost_matrix)
 
     # Step 2: Subtract the column minimum from each column
     cost_matrix -= np.min(cost_matrix, axis=0)
 
-    print("Step 2: Subtract column minimum\n", cost_matrix)
+    # print("Step 2: Subtract column minimum\n", cost_matrix)
 
     # Step 3: Find the minimum number of lines to cover all zeros in the cost matrix
     num_covered, covered_rows, covered_cols = findMinimumLines(cost_matrix)
@@ -41,7 +41,7 @@ def hungarian(cost_matrix):
         # Find the minimum number of lines to cover all zeros in the cost matrix
         num_covered, covered_rows, covered_cols = findMinimumLines(cost_matrix)
 
-    print("Step 3: Find minimum lines\n", cost_matrix, covered_rows, covered_cols)
+    # print("Step 3: Find minimum lines\n", cost_matrix, covered_rows, covered_cols)
     
     # Step 4: Assign rows to columns to minimize the cost
     assignments = np.zeros(rows, dtype=int)
@@ -84,15 +84,15 @@ def hungarian(cost_matrix):
                     if cost_matrix[i, j] == 0 and not assigned_rows[i] and not assigned_cols[j]:
                         zero_count_rows[i] += 1
                         zero_count_cols[j] += 1
-        print("Cost Matrix:\n", cost_matrix)
-        print("Zero count rows:", zero_count_rows)
-        print("Zero count cols:", zero_count_cols)
-        print("Assigned rows:", assigned_rows)
-        print("Assigned cols:", assigned_cols)
+    #     print("Cost Matrix:\n", cost_matrix)
+    #     print("Zero count rows:", zero_count_rows)
+    #     print("Zero count cols:", zero_count_cols)
+    #     print("Assigned rows:", assigned_rows)
+    #     print("Assigned cols:", assigned_cols)
 
                 
 
-    print("Step 4: Assign rows to columns\n", cost_matrix, assignments)
+    # print("Step 4: Assign rows to columns\n", cost_matrix, assignments)
 
     # return assignments of length max(objects, predictions)
     # if #objects > #predictions, then assignments[object index] > #predictions means it is a new object

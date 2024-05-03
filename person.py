@@ -33,7 +33,7 @@ class Person:
         self.covariance = np.eye(6) * 1000.0
         self.last_time = start_time
         self.delete = False
-        # print('PERSON', self.id, 'MADE WITH INITIAL STATE', self.state)
+        print('PERSON', self.id, 'MADE WITH INITIAL STATE', self.state)
         
     def predict(self, new_time):
         dt = new_time - self.last_time
@@ -49,7 +49,7 @@ class Person:
         self.state = np.dot(self.state_transition_matrix, self.state.reshape(6, 1)).reshape(1,6)[0]
         self.covariance = np.dot(np.dot(self.state_transition_matrix, self.covariance), self.state_transition_matrix.T) + self.Q
         self.last_time = new_time
-        # print('PERSON', self.id, ' PREDICTED NEW STATE: ', self.state, 'PREVIOUS STATE WAS:', prev_state, self.state[0])
+        print('PERSON', self.id, ' PREDICTED NEW STATE: ', self.state, 'PREVIOUS STATE WAS:', prev_state, self.state[0])
         self.prediction_box = Box(self.bounding_box.frame, 0, x1=self.state[0], y1=self.state[1], size=self.bounding_box.size)
 
     def update(self, new_box=None):
@@ -70,6 +70,6 @@ class Person:
         z = np.array(measurement).reshape(2, 1)
         y = z - np.dot(self.H, self.state.reshape(6, 1))
         self.state = self.state + np.dot(K, y).reshape(1, 6)
-        # print("IN UPDATE FOR", self.id, 'UPDATED STATE IS', self.state)
+        print("IN UPDATE FOR", self.id, 'UPDATED STATE IS', self.state)
         # Update covariance matrix
         self.covariance = np.dot((np.eye(6) - np.dot(K, self.H)), self.covariance)

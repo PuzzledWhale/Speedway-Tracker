@@ -44,10 +44,10 @@ print('starting up camera. Time is:', start_time)
 
 while True:
     frame += 1
-    # print('\n\n\n\nFRAME', frame)
-    # print('PEOPLE')
-    # for person in people:
-    #     print("PERSON", person.id, "STATES:", person.state, person.bounding_box.position, person.prediction_box.position)
+    print('\n\n\n\nFRAME', frame)
+    print('PEOPLE')
+    for person in people:
+        print("PERSON", person.id, "STATES:", person.state, person.bounding_box.position, person.prediction_box.position)
     curr_time = time.time()
     success, img = cap.read()
     results = model(img, stream=True)
@@ -69,10 +69,10 @@ while True:
             x1, y1, x2, y2 = float(x1), float(y1), float(x2), float(y2) # convert to int values
             bounding_boxes.append(Box(frame, confidence, x1=x1, y1=y1, x2=x2, y2=y2))
     
-    # print('BOXES')
-    # for box in bounding_boxes:
-    #     print('box', box.confidence, box.position)
-    # print('')
+    print('BOXES')
+    for box in bounding_boxes:
+        print('box', box.confidence, box.position)
+    print('')
     if len(people) == 0:
         # add all the bounding boxes as new people
         for box in bounding_boxes:
@@ -84,8 +84,8 @@ while True:
         for person in people:
             person.predict(curr_time)
         
-        # for person in people:
-        #     draw_box(img, person.prediction_box, person, (0, 0, 255), 'prediction for ' + str(person.id))
+        for person in people:
+            draw_box(img, person.prediction_box, person, (0, 0, 255), 'prediction for ' + str(person.id))
 
         # generate cost matrix and run hungarian
         cost_matrix = []
@@ -107,12 +107,12 @@ while True:
         # previous_img=img # updating previous image
 
         assignments = hungarian(cost_matrix)
-        # print('COST MATRIX:\n', cost_matrix)
-        # print('ASSIGNMENTS:', assignments)
+        print('COST MATRIX:\n', cost_matrix)
+        print('ASSIGNMENTS:', assignments)
         for i in range(len(assignments)):
             # person not seen, use prediction for update
             if i >= len(bounding_boxes):
-                # print("PERSON", people[assignments[i]].id, "WITH STATES:", person.state, person.bounding_box.position, person.prediction_box.position, 'NOT SEEN... USING PREDICTION')
+                print("PERSON", people[assignments[i]].id, "WITH STATES:", person.state, person.bounding_box.position, person.prediction_box.position, 'NOT SEEN... USING PREDICTION')
                 people[assignments[i]].update(None)
                 if frame - people[i].frame_history[-1] > 10:
                     people[assignments[i]].delete = True # if person has not been seen for 10 frames, delete the person
@@ -124,7 +124,7 @@ while True:
 
             # make update with new frame
             else:
-                # print("PERSON", people[assignments[i]].id, "WITH STATES:", people[assignments[i]].state, people[assignments[i]].bounding_box.position, people[assignments[i]].prediction_box.position, 'ASSIGNED TO BOX AT', bounding_boxes[i].position)
+                print("PERSON", people[assignments[i]].id, "WITH STATES:", people[assignments[i]].state, people[assignments[i]].bounding_box.position, people[assignments[i]].prediction_box.position, 'ASSIGNED TO BOX AT', bounding_boxes[i].position)
                 people[assignments[i]].update(bounding_boxes[i])
                 draw_box(img, bounding_boxes[i], people[assignments[i]])
         
