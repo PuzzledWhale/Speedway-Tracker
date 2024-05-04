@@ -132,7 +132,7 @@ while True:
                 else:
                     print("PERSON", people[assignments[i]].id, "WITH STATES:", people[assignments[i]].state, people[assignments[i]].bounding_box.position, people[assignments[i]].prediction_box.position, 'ASSIGNED TO BOX AT', bounding_boxes[i].position)
                     people[assignments[i]].update(curr_time, bounding_boxes[i])
-                    # people[assignments[i]].predict(curr_time)
+                    people[assignments[i]].predict(curr_time)
                     draw_box(img, bounding_boxes[i], people[assignments[i]])
         # if not bounding boxes were detected, automatically update all people and check if they should be deleted
         else:
