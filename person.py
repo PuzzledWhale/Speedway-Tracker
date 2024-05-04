@@ -2,7 +2,7 @@ import numpy as np
 from box import Box
 
 class Person:
-    def __init__(self, bounding_box, start_time, id, q = 0.8, r = 0.1):
+    def __init__(self, bounding_box, start_time, id, q = 0.8, r = 0.4):
         self.bounding_box = bounding_box # current bounding box this person is associated to
         self.prediction_box = bounding_box
         self.id = id
@@ -28,7 +28,7 @@ class Person:
         # Initialize measurement noise covariance matrix
         self.R = r * np.eye(2)
         
-        # Initialize state and covariance matrix # np.sign(320 - bounding_box.position[0]) * 2
+        # Initialize state and covariance matrix
         self.state = np.array([bounding_box.position[0], bounding_box.position[1], 0, 0, 0, 0])  # [x, y, vx, vy, ax, ay]
         self.covariance = np.eye(6) * 1000.0
         self.last_time = start_time
@@ -52,7 +52,7 @@ class Person:
         print('PERSON', self.id, ' PREDICTED NEW STATE: ', self.state, 'PREVIOUS STATE WAS:', prev_state, self.state[0])
         self.prediction_box = Box(self.bounding_box.frame, 0, x1=self.state[0], y1=self.state[1], size=self.bounding_box.size)
 
-    def update(self, new_box=None):
+    def update(self, new_time, new_box=None):
         if new_box:
             self.bounding_box = new_box
             # self.box_history.append(new_box)
@@ -61,6 +61,8 @@ class Person:
             self.bounding_box = self.prediction_box
 
         measurement = self.bounding_box.position
+
+        self.last_time = new_time
 
         # Kalman gain
         S = np.dot(np.dot(self.H, self.covariance), self.H.T) + self.R

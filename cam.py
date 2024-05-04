@@ -24,18 +24,17 @@ def draw_box(img, box, person, col=(255,0,0), label=None):
     if not label:
         label = 'confidence: ' + str(box.confidence) + ' ID: ' + str(person.id)
     # object details
-    cv2.putText(img, label, [x1, y1], cv2.FONT_HERSHEY_SIMPLEX, 0.4, col, 1)
+    cv2.putText(img, label, [x1, y1], cv2.FONT_HERSHEY_SIMPLEX, 0.5, col, 2)
 
 # webcam
 # cap = cv2.VideoCapture(0)
-cap = cv2.VideoCapture('videos/20240430_182615.mp4') #1
-#cap = cv2.VideoCapture('videos/20240430_182351.mp4') #2
+cap = cv2.VideoCapture('videos/20240430_182615.mp4')
+# cap = cv2.VideoCapture('videos/WIN_20240503_14_36_51_Pro.mp4')
 cap.set(3, 640)
 cap.set(4, 480)
 
 people_id = 0
 frame = 0
-frame_thresh = 1 # set frame threshold to 1 second for now
 
 # model (make sure you have the .pt file in the same directory as this python file)
 model = YOLO("best.pt")
@@ -46,7 +45,6 @@ people = []
 grace_period = 50
 
 start_time = time.time # float in seconds
-print('starting up camera. Time is:', start_time) 
 
 while True:
     #Taking image
@@ -70,7 +68,7 @@ while True:
             confidence = math.ceil((box.conf[0]*100))/100
 
             # if confidence is not high enough, continue
-            if confidence < 0.4:
+            if confidence < 0.49:
                 continue
             
             # get bounding box information
@@ -88,13 +86,9 @@ while True:
             person = Person(box, curr_time, people_id)
             person.color=ColorFeature(img,box)
             people.append(person)
-            draw_box(img, bounding_boxes[people_id], people[people_id])
+            draw_box(img, bounding_boxes[-1], people[-1])
             people_id += 1
     else:
-        #  predict bounding box positions at new time and assign through hungarian algorithm
-        for person in people:
-            person.predict(curr_time)
-        
         # for person in people:
         #     draw_box(img, person.prediction_box, person, (0, 0, 255), 'prediction for ' + str(person.id))
 
@@ -114,16 +108,19 @@ while True:
             print('Cost matrix of Color Distance',color_cost_matrix)
             cost_matrix=cost_matrix+color_cost_matrix
 
-            assignments = hungarian(cost_matrix)
             print('COST MATRIX:\n', cost_matrix)
+            assignments = hungarian(cost_matrix)
             print('ASSIGNMENTS:', assignments)
+            
             for i in range(len(assignments)):
                 # person not seen, use prediction for update
                 if i >= len(bounding_boxes):
                     print("PERSON", people[assignments[i]].id, "WITH STATES:", person.state, person.bounding_box.position, person.prediction_box.position, 'NOT SEEN... USING PREDICTION')
-                    # people[assignments[i]].update(None)
                     if frame - people[i].frame_history[-1] > grace_period:
                         people[assignments[i]].delete = True # if person has not been seen for 10 frames, delete the person
+                    else:
+                        people[assignments[i]].predict(curr_time)
+                        draw_box(img, person.prediction_box, person, (0, 0, 255), 'prediction for ' + str(person.id))
                 # new frame
                 elif assignments[i] >= len(people):   
                     people.append(Person(bounding_boxes[i], curr_time, people_id)) # assign bounding box to new person
@@ -134,7 +131,8 @@ while True:
                 # make update with new frame
                 else:
                     print("PERSON", people[assignments[i]].id, "WITH STATES:", people[assignments[i]].state, people[assignments[i]].bounding_box.position, people[assignments[i]].prediction_box.position, 'ASSIGNED TO BOX AT', bounding_boxes[i].position)
-                    people[assignments[i]].update(bounding_boxes[i])
+                    people[assignments[i]].update(curr_time, bounding_boxes[i])
+                    # people[assignments[i]].predict(curr_time)
                     draw_box(img, bounding_boxes[i], people[assignments[i]])
         # if not bounding boxes were detected, automatically update all people and check if they should be deleted
         else:
@@ -142,7 +140,7 @@ while True:
                 if frame - person.frame_history[-1] > grace_period:
                         person.delete = True # if person has not been seen for 10 frames, delete the person
         
-        people = [person for person in people if not person.delete] # delete all people who have not been seen for 10 frames
+        people = [person for person in people if not person.delete] # delete all people who have not been seen for frames grace period
     
     cv2.imshow('Webcam', img)
     #if frame==101 :
@@ -151,7 +149,7 @@ while True:
     
     if cv2.waitKey(1) == ord('q'):
         break
-    # time.sleep(2) # for debugging purposes
+    # time.sleep(1) # for debugging purposes
 
 cap.release()
 cv2.destroyAllWindows()

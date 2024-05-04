@@ -43,3 +43,6 @@ class Box():
     # returns the total area of the bouinding box (W * H)
     def get_area(self):
         return self.size[0] * self.size[1]
+    
+    def custom_metric(self, box2):
+        return self.euclidean_distance(box2) + abs(self.get_area - box2.get_area)
