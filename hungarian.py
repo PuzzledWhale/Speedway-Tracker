@@ -4,107 +4,118 @@ import scipy.optimize as opt
 def findMinimumLines (cost_matrix):
     rows, cols = cost_matrix.shape
     
-    # Arbitrarily assign zeros in the cost matrix to rows and columns
     assigned_rows = np.zeros(rows, dtype=bool)
     assigned_cols = np.zeros(cols, dtype=bool)
     assignment_matrix = np.zeros(cost_matrix.shape, dtype=bool)
 
-    for row in range(rows):
-        for col in range(cols):
-            if cost_matrix[row, col] == 0 and not assigned_rows[row] and not assigned_cols[col]:
-                assignment_matrix[row, col] = True
-                assigned_rows[row] = True
-                assigned_cols[col] = True
+    zero_count_rows = np.sum(cost_matrix == 0, axis=1)
+    zero_count_cols = np.sum(cost_matrix == 0, axis=0)
+    zero_matrix = np.array(cost_matrix == 0, dtype=bool)
 
-    # Increase the number of assigned zeros incrementally until all zeros are covered
-    covered_rows = np.zeros(rows, dtype=bool)
-    covered_cols = np.copy(assigned_cols)
-
+    # Assign columns in rows with only one zero (and vice versa), cross out the zeros in the corresponding assignments
     while True:
-        # Cover all columns with assigned zeros
-        primed_matrix = np.zeros(cost_matrix.shape, dtype=bool)
-        covered_rows = np.zeros(rows, dtype=bool)
-        covered_cols = np.copy(assigned_cols)
-        reset = False
-        
-        while True:
-            # Search for uncovered zeros in the cost matrix
-            prime_found = False
-            for row in range(rows):
-                if covered_rows[row]:
-                    continue
+        assigned_row_or_col = False
 
-                primed_col = -1
-                for col in range(cols):
-                    # Prime an uncovered zero
-                    if cost_matrix[row, col] != 0 or covered_cols[col]:
-                        continue
-                    primed_matrix[row, col] = True
-                    prime_found = True
-                    primed_col = col
-                    if assigned_rows[row]:
-                        covered_rows[row] = True
-                    break
-                else:
-                    continue
+        for row in range(rows):
+            if zero_count_rows[row] != 1 or assigned_rows[row]:
+                continue
+            assigned_row_or_col = True
+            assigned_col = np.argmax(zero_matrix[row, :])
 
-                # If the primed zero has an assigned zero in the same row, cover the row and uncover the column
-                if covered_rows[row]:
-                    for col in range(cols):
-                        if assignment_matrix[row, col]:
-                            covered_cols[col] = False
-                            break
-                # If the primed zero has no assigned zero in the same row, find an alternating path of primed and assigned zeros
-                # Starting from the primed zero, search the column for an assigned zero, then search the assigned zero's row for a primed zero, etc.
-                # When the path ends, convert the primed zeros to assigned zeros and assigned zeros to unassigned zeros
-                # Then, reset the coverage and primed zeros and start the coverage process again
-                else:
-                    row_path = [row]
-                    col_path = [primed_col]
+            assignment_matrix[row, assigned_col] = True
+            assigned_rows[row] = True
+            assigned_cols[assigned_col] = True
 
-                    while True:
-                        for r in range(rows):
-                            if assignment_matrix[r, col_path[-1]]:
-                                row_path.append(r)
-                                break
+            for r in range(rows):
+                if zero_matrix[r, assigned_col]:
+                    zero_matrix[r, assigned_col] = False
+                    zero_count_rows[r] -= 1
+                    zero_count_cols[assigned_col] -= 1
 
-                        if len(row_path) == len(col_path):
-                            break
+        for col in range(cols):
+            if zero_count_cols[col] != 1 or assigned_cols[col]:
+                continue
+            assigned_row_or_col = True
+            assigned_row = np.argmax(zero_matrix[:, col])
 
-                        for c in range(cols):
-                            if primed_matrix[row_path[-1], c]:
-                                col_path.append(c)
-                                break
+            assignment_matrix[assigned_row, col] = True
+            assigned_rows[assigned_row] = True
+            assigned_cols[col] = True
 
-                    for col_path_index in range(len(col_path)):
-                        row_path_index = col_path_index
-                        if primed_matrix[row_path[row_path_index], col_path[col_path_index]]:
-                            primed_matrix[row_path[row_path_index], col_path[col_path_index]] = False
-                            assignment_matrix[row_path[row_path_index], col_path[col_path_index]] = True
-                            assigned_rows[row_path[row_path_index]] = True
-                            assigned_cols[col_path[col_path_index]] = True
+            for c in range(cols):
+                if zero_matrix[assigned_row, c]:
+                    zero_matrix[assigned_row, c] = False
+                    zero_count_rows[assigned_row] -= 1
+                    zero_count_cols[c] -= 1
 
-                        if row_path_index + 1 == len(row_path):
-                            break
-
-                        if assignment_matrix[row_path[row_path_index + 1], col_path[col_path_index]]:
-                            assignment_matrix[row_path[row_path_index + 1], col_path[col_path_index]] = False
-                    
-                    reset = True
-                    break
-            
-            if not prime_found or reset:
-                break
-        if not prime_found:
+        if not assigned_row_or_col:
             break
 
+    # If needed, arbitrary assignment of zeros
+    if np.max(zero_count_rows) != 0 or np.max(zero_count_cols) != 0:
+        for row in range(rows):
+            if zero_count_rows[row] == 0 or assigned_rows[row]:
+                continue
+            for col in range(cols):
+                if zero_count_cols[col] == 0 or assigned_cols[col]:
+                    continue
+                if zero_matrix[row, col]:
+                    assignment_matrix[row, col] = True
+                    assigned_rows[row] = True
+                    assigned_cols[col] = True
+                    for r in range(rows):
+                        if zero_matrix[r, col]:
+                            zero_matrix[r, col] = False
+                            zero_count_rows[r] -= 1
+                            zero_count_cols[col] -= 1
+
+                    for c in range(cols):
+                        if zero_matrix[row, c]:
+                            zero_matrix[row, c] = False
+                            zero_count_rows[row] -= 1
+                            zero_count_cols[c] -= 1
+
+    ticked_rows = np.zeros(rows, dtype=bool)
+    ticked_cols = np.zeros(cols, dtype=bool)
+    zero_matrix = np.array(cost_matrix == 0, dtype=bool)
+
+    # Tick all unassigned rows
+    ticked_rows = ~assigned_rows
+
+    while True:
+        ticked_row_or_col = False
+
+        # In all ticked rows, tick all columns corresponding with zeros in those rows
+        for row in range(rows):
+            if not ticked_rows[row]:
+                continue
+            for col in range(cols):
+                if zero_matrix[row, col] and not ticked_cols[col]:
+                    ticked_cols[col] = True
+                    ticked_row_or_col = True
+
+        # In all ticked columns, tick all rows corresponding with assignments in those columns
+        for col in range(cols):
+            if not ticked_cols[col]:
+                continue
+            for row in range(rows):
+                if assignment_matrix[row, col] and not ticked_rows[row]:
+                    ticked_rows[row] = True
+                    ticked_row_or_col = True
+
+        if not ticked_row_or_col:
+            break
+
+    # Cover all unticked rows and ticked columns
+    covered_rows = ~ticked_rows
+    covered_cols = ticked_cols
     num_covered = np.sum(covered_rows) + np.sum(covered_cols)
     return num_covered, covered_rows, covered_cols
 
 def hungarian(cost_matrix, test=True):
     if not test:
         row_ind_assignments, col_ind_assignments = opt.linear_sum_assignment(cost_matrix)
-        return col_ind_assignments
+        return col_ind_assignments 
     
     # cost_matrix : rows are objects and columns are predictions
     cost_matrix = np.array(cost_matrix)
@@ -150,7 +161,7 @@ def hungarian(cost_matrix, test=True):
         # Find the minimum number of lines to cover all zeros in the cost matrix
         num_covered, covered_rows, covered_cols = findMinimumLines(cost_matrix)
 
-    print("Step 3: Find minimum lines\n", cost_matrix, covered_rows, covered_cols)
+    print("Step 3: Find minimum lines\n", cost_matrix, num_covered)
 
 
     # Step 4: Assign rows to columns to minimize the cost
@@ -160,46 +171,55 @@ def hungarian(cost_matrix, test=True):
     assigned_cols = np.zeros(N, dtype=bool)
     num_assigned = 0
 
+    ##Debugging
+    # two_count = 0
     while True:
         # Initialize zero counts of rows and columns
         # If a row or column is assigned, set the zero count to N + 1
         zero_count_rows = np.zeros(N, dtype=int)
         zero_count_cols = np.zeros(N, dtype=int)
-        for n in range(N):
-            if assigned_rows[n]:
-                zero_count_rows[n] = N + 1
-            if assigned_cols[n]:
-                zero_count_cols[n] = N + 1
         for row in range(N):
             for col in range(N):
                 if cost_matrix[row, col] == 0 and not assigned_rows[row] and not assigned_cols[col]:
                     zero_count_rows[row] += 1
                     zero_count_cols[col] += 1
-        
-        # Find the row or column with the minimum number of zeros and assign the first zero seen
-        row_to_assign = True if np.min(zero_count_rows) <= np.min(zero_count_cols) else False
-        min_index = np.argmin(zero_count_rows) if row_to_assign else np.argmin(zero_count_cols)
-        for n in range(N):
-            if row_to_assign:
-                if cost_matrix[min_index, n] == 0 and not assigned_cols[n]:
-                    col_ind_assignments[min_index] = n
-                    row_ind_assignments[n] = min_index
-                    assigned_rows[min_index] = True
-                    assigned_cols[n] = True
-                    num_assigned += 1
-                    break
-            else:
-                if cost_matrix[n, min_index] == 0 and not assigned_rows[n]:
-                    col_ind_assignments[n] = min_index
-                    row_ind_assignments[min_index] = n
-                    assigned_rows[n] = True
-                    assigned_cols[min_index] = True
-                    num_assigned += 1
-                    break
+
+        zero_count_matrix = np.zeros((N, N), dtype=int)
+        for row in range(N):
+            for col in range(N):
+                if cost_matrix[row, col] != 0 or assigned_rows[row] or assigned_cols[col]:
+                    zero_count_matrix[row, col] = 2 * N + 1
+                    continue
+                zero_count_matrix[row, col] = min(zero_count_rows[row], zero_count_cols[col])
+                
+
+        # Find the row and column with the minimum number of zeros and assign the zero
+        min_index = np.argmin(zero_count_matrix)
+        min_index = (min_index // N, min_index % N)
+        col_ind_assignments[min_index[0]] = min_index[1]
+        row_ind_assignments[min_index[1]] = min_index[0]
+        assigned_rows[min_index[0]] = True
+        assigned_cols[min_index[1]] = True
+        num_assigned += 1
+
+        ##Debugging
+        # print("Zero count matrix:\n", zero_count_matrix)
+        # print("assigned:", min_index, zero_count_matrix[min_index[0], min_index[1]])
+        # if zero_count_matrix[min_index[0], min_index[1]] == 2:
+        #     two_count += 1
 
         if num_assigned == N:
+            ## Debugging
+            # if np.sum(col_ind_assignments == 0) > 1 or np.sum(row_ind_assignments == 0) > 1:
+            #     print("Cost matrix:\n", cost_matrix)
+            #     print("Zero count matrix:\n", zero_count_matrix)
+            #     print("two_count:", two_count)
+            #     print("Row and Col index assignments\n", row_ind_assignments, col_ind_assignments)
+            #     print("exited")
+            #     exit()
             break
 
+    
     print("Step 4: Assign rows to columns\n", cost_matrix)
     print("Row and Col index assignments\n", row_ind_assignments, col_ind_assignments)
 
@@ -212,7 +232,11 @@ def hungarian(cost_matrix, test=True):
 
 
 if __name__ == '__main__':
-    # Example usage
-    # cost_matrix = np.random.randint(0, 100, (10, 10))
-    cost_matrix = np.array([[99, 4, 19, 68, 9], [62, 94, 84, 15, 93], [71, 64, 72, 82, 76], [71, 81, 79, 19, 33], [0, 0, 0, 0, 0]])
+    ## Debugging
+    cost_matrix = np.random.randint(0, 100, (100, 100))
+    # cost_matrix = np.array([[11, 7, 10, 17, 10], [13, 21, 7, 11, 13], [13, 13, 15, 13, 14], [18, 10, 13, 16, 14], [12, 8, 16, 19, 10]])
     hungarian(cost_matrix)
+    # for _ in range(1000):
+    #     print("Iteration:", _)
+    #     cost_matrix = np.random.randint(0, 100, (20, 20))
+    #     hungarian(cost_matrix)
