@@ -8,6 +8,11 @@ from hungarian import hungarian
 from box import Box
 from color import *
 
+##### Hyperparameter######
+color_cost_alpha=10
+##########################
+
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def draw_box(img, box, person, col=(255,0,0), label=None):
@@ -23,12 +28,12 @@ def draw_box(img, box, person, col=(255,0,0), label=None):
 
 # webcam
 # cap = cv2.VideoCapture(0)
-cap = cv2.VideoCapture('videos/20240430_182615.mp4')
+cap = cv2.VideoCapture('videos/20240430_182615.mp4') #1
+#cap = cv2.VideoCapture('videos/20240430_182351.mp4') #2
 cap.set(3, 640)
 cap.set(4, 480)
 
 people_id = 0
-
 frame = 0
 frame_thresh = 1 # set frame threshold to 1 second for now
 
@@ -37,7 +42,6 @@ model = YOLO("best.pt")
 model.to(device)
 
 people = []
-previous_img = []
 
 grace_period = 50
 
@@ -45,7 +49,10 @@ start_time = time.time # float in seconds
 print('starting up camera. Time is:', start_time) 
 
 while True:
+    #Taking image
+    
     frame += 1
+    print('Number of counted people', people_id)
     print('\n\n\n\nFRAME', frame)
     print('PEOPLE')
     for person in people:
@@ -79,8 +86,10 @@ while True:
         # add all the bounding boxes as new people
         for box in bounding_boxes:
             person = Person(box, curr_time, people_id)
-            people_id += 1
+            person.color=ColorFeature(img,box)
             people.append(person)
+            draw_box(img, bounding_boxes[people_id], people[people_id])
+            people_id += 1
     else:
         #  predict bounding box positions at new time and assign through hungarian algorithm
         for person in people:
@@ -99,15 +108,11 @@ while True:
                     row.append(person.prediction_box.euclidean_distance(box))
                 cost_matrix.append(row)
 
-            previous_boxes=[]
-            for person in people :
-                previous_boxes.append(person.bounding_box)
             
-            # # Cost_matrix for color match
-            # if len(previous_img) != 0:
-            #     # not first detection 
-            #     cost_matrix=cost_matrix+ColorDistance(previous_img,previous_boxes,img,bounding_boxes)
-            # previous_img=img # updating previous image
+            color_cost_matrix=color_cost_alpha*ColorDistance(img,bounding_boxes,people)
+            print('Cost matrix of Euclidean Distance',cost_matrix)
+            print('Cost matrix of Color Distance',color_cost_matrix)
+            cost_matrix=cost_matrix+color_cost_matrix
 
             assignments = hungarian(cost_matrix)
             print('COST MATRIX:\n', cost_matrix)
@@ -122,6 +127,7 @@ while True:
                 # new frame
                 elif assignments[i] >= len(people):   
                     people.append(Person(bounding_boxes[i], curr_time, people_id)) # assign bounding box to new person
+                    people[-1].color=ColorFeature(img,bounding_boxes[i])
                     people_id += 1 
                     draw_box(img, bounding_boxes[i], people[-1])
 
@@ -139,6 +145,10 @@ while True:
         people = [person for person in people if not person.delete] # delete all people who have not been seen for 10 frames
     
     cv2.imshow('Webcam', img)
+    #if frame==101 :
+    #    cv2.imwrite('entire_'+str(frame-1)+'.jpg',img)
+    #    break
+    
     if cv2.waitKey(1) == ord('q'):
         break
     # time.sleep(2) # for debugging purposes

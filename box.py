@@ -12,6 +12,7 @@ class Box():
         else:
             self.position = np.array([((x1 + x2) / 2), ((y1 + y2) / 2)]) # store bounding box center position
             self.size = np.array([x2-x1, y2-y1])
+           
 
 
     # get the corners of the bounding box as a numpy array of (x1, y1, x2, y2) where (x1, y1) is the top left corner and (x2, y2) is the bottom right corner
