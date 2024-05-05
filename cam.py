@@ -27,9 +27,8 @@ def draw_box(img, box, person, col=(255,0,0), label=None):
     cv2.putText(img, label, [x1, y1], cv2.FONT_HERSHEY_SIMPLEX, 0.5, col, 2)
 
 # webcam
-# cap = cv2.VideoCapture(0)
-cap = cv2.VideoCapture('videos/20240430_182615.mp4')
-# cap = cv2.VideoCapture('videos/WIN_20240503_14_36_51_Pro.mp4')
+cap = cv2.VideoCapture(0) # can replace '0' with path to any video you want to run the system on
+
 cap.set(3, 640)
 cap.set(4, 480)
 
@@ -48,18 +47,18 @@ start_time = time.time # float in seconds
 
 while True:
     #Taking image
-    
     frame += 1
-    print('Number of counted people', people_id)
-    print('\n\n\n\nFRAME', frame)
-    print('PEOPLE')
-    for person in people:
-        print("PERSON", person.id, "STATES:", person.state, person.bounding_box.position, person.prediction_box.position)
+    # print('Number of counted people', people_id)
+    # print('\n\n\n\nFRAME', frame)
+    # print('PEOPLE')
+    # for person in people:
+    #     print("PERSON", person.id, "STATES:", person.state, person.bounding_box.position, person.prediction_box.position)
     curr_time = time.time()
     success, img = cap.read()
-    results = model(img, stream=True)
+    results = model(img, stream=True) # run frame through model
     
-    bounding_boxes = []
+    bounding_boxes = [] # list of all bounding boxes detected in the frame by the model
+
     # coordinates
     for r in results:
         boxes = r.boxes
@@ -67,7 +66,7 @@ while True:
             # add bounding box to list of new bounding boxes detected this frame
             confidence = math.ceil((box.conf[0]*100))/100
 
-            # if confidence is not high enough, continue
+            # ignore bounding boxes with low confidence values
             if confidence < 0.49:
                 continue
             
@@ -76,10 +75,11 @@ while True:
             x1, y1, x2, y2 = float(x1), float(y1), float(x2), float(y2) # convert to int values
             bounding_boxes.append(Box(frame, confidence, x1=x1, y1=y1, x2=x2, y2=y2))
     
-    print('BOXES')
-    for box in bounding_boxes:
-        print('box', box.confidence, box.position)
-    print('')
+    # print('BOXES')
+    # for box in bounding_boxes:
+    #     print('box', box.confidence, box.position)
+    # print('')
+
     if len(people) == 0:
         # add all the bounding boxes as new people
         for box in bounding_boxes:
@@ -89,8 +89,9 @@ while True:
             draw_box(img, bounding_boxes[-1], people[-1])
             people_id += 1
     else:
-        # for person in people:
-        #     draw_box(img, person.prediction_box, person, (0, 0, 255), 'prediction for ' + str(person.id))
+        for person in people:
+            draw_box(img, person.prediction_box, person, (0, 0, 255), 'prediction for ' + str(person.id))
+            person.predict(curr_time)
 
         # generate cost matrix and run hungarian
         if len(bounding_boxes) > 0:
@@ -119,7 +120,7 @@ while True:
                     if frame - people[i].frame_history[-1] > grace_period:
                         people[assignments[i]].delete = True # if person has not been seen for 10 frames, delete the person
                     else:
-                        people[assignments[i]].predict(curr_time)
+                        # people[assignments[i]].predict(curr_time)
                         draw_box(img, person.prediction_box, person, (0, 0, 255), 'prediction for ' + str(person.id))
                 # new frame
                 elif assignments[i] >= len(people):   
@@ -132,7 +133,7 @@ while True:
                 else:
                     print("PERSON", people[assignments[i]].id, "WITH STATES:", people[assignments[i]].state, people[assignments[i]].bounding_box.position, people[assignments[i]].prediction_box.position, 'ASSIGNED TO BOX AT', bounding_boxes[i].position)
                     people[assignments[i]].update(curr_time, bounding_boxes[i])
-                    people[assignments[i]].predict(curr_time)
+                    # people[assignments[i]].predict(curr_time)
                     draw_box(img, bounding_boxes[i], people[assignments[i]])
         # if not bounding boxes were detected, automatically update all people and check if they should be deleted
         else:
@@ -151,5 +152,6 @@ while True:
         break
     # time.sleep(1) # for debugging purposes
 
+print("A total of", people_id + 1, "pedestrians were seen")
 cap.release()
 cv2.destroyAllWindows()
