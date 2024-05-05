@@ -4,13 +4,15 @@ import math
 class Box():
     # if x2 and y2 are provided then find center between point1 and point2. Otherwise assume point1 is the center
     def __init__(self, frame, confidence, x1, y1, x2 = -1, y2 = -1, size=np.array([0,0])):
-        self.frame = frame
-        self.confidence = confidence
+        self.frame = frame # frame that the boundign box was seen in
+        self.confidence = confidence 
+
+        # the bounding box stares its position as the center of the box, so depending on what values are provided, the initialization is different
         if x2 == -1 and y2 == -1:
-            self.position = np.array([x1, y1])
+            self.position = np.array([x1, y1]) # assume given x,y is the center
             self.size = size
         else:
-            self.position = np.array([((x1 + x2) / 2), ((y1 + y2) / 2)]) # store bounding box center position
+            self.position = np.array([((x1 + x2) / 2), ((y1 + y2) / 2)]) # calculate and store bounding box center position
             self.size = np.array([x2-x1, y2-y1])
            
 
@@ -40,9 +42,10 @@ class Box():
     def euclidean_distance(self, box2):
         return math.sqrt((self.position[0] - box2.position[0])**2 + (self.position[1] - box2.position[1])**2)
     
-    # returns the total area of the bouinding box (W * H)
+    # returns the total area of the bounding box (W * H)
     def get_area(self):
         return self.size[0] * self.size[1]
     
+    # find custom metric for comparing two bounding boxes that combines euclidean distance and diffrence in bounding box size
     def custom_metric(self, box2):
         return self.euclidean_distance(box2) + abs(self.get_area - box2.get_area)
