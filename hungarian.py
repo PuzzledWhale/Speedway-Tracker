@@ -129,26 +129,30 @@ def hungarian(cost_matrix, test=True):
     elif num_cols > num_rows:
         cost_matrix = np.pad(cost_matrix, [(0, num_cols-num_rows), (0, 0)], mode='constant', constant_values=0)
 
-    print("Preprocessing: Pad the cost matrix\n", cost_matrix)
+    ##Debugging
+    # print("Preprocessing: Pad the cost matrix\n", cost_matrix)
 
 
     # Step 1: Subtract the row minimum from each row
     cost_matrix -= np.min(cost_matrix, axis=1)[:, np.newaxis]
 
-    print("Step 1: Subtract row minimum\n", cost_matrix)
+    ##Debugging
+    # print("Step 1: Subtract row minimum\n", cost_matrix)
 
 
     # Step 2: Subtract the column minimum from each column
     cost_matrix -= np.min(cost_matrix, axis=0)
 
-    print("Step 2: Subtract column minimum\n", cost_matrix)
+    ##Debugging
+    # print("Step 2: Subtract column minimum\n", cost_matrix)
 
 
     # Step 3: Find the minimum number of lines to cover all zeros in the cost matrix
     num_covered, covered_rows, covered_cols = findMinimumLines(cost_matrix)
 
     while num_covered < N:
-        print("Step 3: Find minimum lines\n", cost_matrix, num_covered, covered_rows, covered_cols)
+        ##Debugging
+        # print("Step 3: Find minimum lines\n", cost_matrix, num_covered, covered_rows, covered_cols)
         # Find the minimum uncovered element
         minval = np.min(cost_matrix[~covered_rows, :][:, ~covered_cols])
         
@@ -161,7 +165,8 @@ def hungarian(cost_matrix, test=True):
         # Find the minimum number of lines to cover all zeros in the cost matrix
         num_covered, covered_rows, covered_cols = findMinimumLines(cost_matrix)
 
-    print("Step 3: Find minimum lines\n", cost_matrix, num_covered)
+    ##Debugging
+    # print("Step 3: Find minimum lines\n", cost_matrix, num_covered)
 
 
     # Step 4: Assign rows to columns to minimize the cost
@@ -219,9 +224,9 @@ def hungarian(cost_matrix, test=True):
             #     exit()
             break
 
-    
-    print("Step 4: Assign rows to columns\n", cost_matrix)
-    print("Row and Col index assignments\n", row_ind_assignments, col_ind_assignments)
+    ##Debugging
+    # print("Step 4: Assign rows to columns\n", cost_matrix)
+    # print("Row and Col index assignments\n", row_ind_assignments, col_ind_assignments)
 
 
     # return assignments of length max(objects, predictions)
