@@ -30,6 +30,8 @@ def draw_box(img, box, person, col=(255,0,0), label=None):
 # cap = cv2.VideoCapture(0)
 cap = cv2.VideoCapture('videos/20240430_182615.mp4')
 # cap = cv2.VideoCapture('videos/WIN_20240503_14_36_51_Pro.mp4')
+# cap = cv2.VideoCapture('videos/20240430_182954.mp4') #3
+
 cap.set(3, 640)
 cap.set(4, 480)
 
