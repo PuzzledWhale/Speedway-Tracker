@@ -48,4 +48,4 @@ class Box():
     
     # find custom metric for comparing two bounding boxes that combines euclidean distance and diffrence in bounding box size
     def custom_metric(self, box2):
-        return self.euclidean_distance(box2) + abs(self.get_area - box2.get_area)
+        return self.euclidean_distance(box2) + abs(self.get_area() - box2.get_area())
