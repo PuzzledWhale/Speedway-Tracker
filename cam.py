@@ -29,6 +29,7 @@ def draw_box(img, box, person, col=(255,0,0), label=None):
 # webcam
 cap = cv2.VideoCapture(0) # can replace '0' with path to any video you want to run the system on
 
+
 cap.set(3, 640)
 cap.set(4, 480)
 
