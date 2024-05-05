@@ -31,7 +31,7 @@ def draw_box(img, box, person, col=(255,0,0), label=None):
     cv2.putText(img, label, [x1, y1], cv2.FONT_HERSHEY_SIMPLEX, 0.5, col, 2)
 
 # webcam
-cap = cv2.VideoCapture('videos\\20240430_182615.mp4') # can replace '0' with path to any video you want to run the system on
+cap = cv2.VideoCapture(0) # can replace '0' with path to any video you want to run the system on
 cap.set(3, 640)
 cap.set(4, 480)
 
